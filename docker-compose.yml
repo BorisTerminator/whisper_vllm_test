@@ -1,9 +1,13 @@
 services:
   vllm-whisper:
+    build:
+      context: .
+      dockerfile: dockerfile
     image: vllm/vllm-openai:v0.7.3
     container_name: vllm-whisper
     ports:
       - "8000:8000"
+    ipc: host
     deploy:
       resources:
         reservations:
@@ -14,12 +18,12 @@ services:
     volumes:
       - huggingface_cache:/root/.cache/huggingface
     command: >
-      --model openai/whisper-large-v3
+      --model openai/whisper-large-v3-turbo
       --task transcription
-      --max-model-len 448
-      --max-num-seqs 10
+      --max-model-len 50
+      --max-num-seqs 2
       --dtype float16
-      --gpu-memory-utilization 0.9
+      --gpu-memory-utilization 0.7
       --limit-mm-per-prompt audio=1
       --enforce-eager
     environment:
@@ -42,10 +46,12 @@ services:
     volumes:
       - ./аудио.zip:/app/аудио.zip:ro
       - ./test_whisper_async.py:/app/test_whisper_async.py:ro
+      - ./results:/app/results
     working_dir: /app
     environment:
       - VLLM_URL=http://vllm-whisper:8000/v1/audio/transcriptions
       - ZIP_PATH=/app/аудио.zip
+      - RESULTS_PATH=/app/results/benchmark.json
     command: >
       bash -c "pip install aiohttp --quiet &&
       python test_whisper_async.py"

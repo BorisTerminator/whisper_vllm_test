@@ -1,13 +1,16 @@
 """
 Async load test for vLLM Whisper large v3.
 Extracts up to 10 MP3 files from аудио.zip and sends them concurrently.
+Results are saved to a JSON file (RESULTS_PATH env var, default: results.json).
 """
 
 import asyncio
+import json
 import time
 import zipfile
 import tempfile
 import os
+from datetime import datetime
 from pathlib import Path
 
 import aiohttp
@@ -16,6 +19,7 @@ import aiohttp
 VLLM_URL = os.getenv("VLLM_URL", "http://localhost:8000/v1/audio/transcriptions")
 MODEL = "openai/whisper-large-v3"
 ZIP_PATH = os.getenv("ZIP_PATH", "аудио.zip")
+RESULTS_PATH = os.getenv("RESULTS_PATH", "results.json")
 MAX_FILES = 10
 LANGUAGE = "ru"  # change to None for auto-detect
 
@@ -128,6 +132,43 @@ def print_results(results: list[dict], wall_elapsed: float):
         print(f"Throughput: {ok / wall_elapsed:.2f} files/sec")
 
 
+def save_results(results: list[dict], wall_elapsed: float, path: str):
+    ok = sum(1 for r in results if r["status"] == "OK")
+    total = len(results)
+    avg = sum(r["elapsed"] for r in results) / total if total else 0
+
+    output = {
+        "timestamp": datetime.now().isoformat(),
+        "model": MODEL,
+        "vllm_url": VLLM_URL,
+        "total_files": total,
+        "successful": ok,
+        "wall_clock_seconds": round(wall_elapsed, 2),
+        "avg_per_file_seconds": round(avg, 2),
+        "throughput_files_per_sec": round(ok / wall_elapsed, 3) if wall_elapsed > 0 else 0,
+        "files": [
+            {
+                "index": r["index"],
+                "file": r["file"],
+                "status": r["status"],
+                "elapsed_seconds": round(r["elapsed"], 2),
+                "text": r["text"] if r["status"] == "OK" else None,
+                "error": r["text"] if r["status"] != "OK" else None,
+            }
+            for r in sorted(results, key=lambda x: x["index"])
+        ],
+    }
+
+    # Ensure parent dir exists
+    out_path = Path(path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
+
+    print(f"\n✓ Results saved to {out_path.resolve()}")
+
+
 async def main():
     print(f"Extracting up to {MAX_FILES} files from {ZIP_PATH}...")
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -139,6 +180,7 @@ async def main():
         results, wall_elapsed = await run_test(files)
 
     print_results(results, wall_elapsed)
+    save_results(results, wall_elapsed, RESULTS_PATH)
 
 
 if __name__ == "__main__":
