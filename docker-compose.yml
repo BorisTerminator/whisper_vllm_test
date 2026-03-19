@@ -28,8 +28,25 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 120s
+      retries: 20
+      start_period: 300s
+
+  tester:
+    image: python:3.12-slim
+    container_name: vllm-tester
+    depends_on:
+      vllm-whisper:
+        condition: service_healthy
+    volumes:
+      - ./аудио.zip:/app/аудио.zip:ro
+      - ./test_whisper_async.py:/app/test_whisper_async.py:ro
+    working_dir: /app
+    environment:
+      - VLLM_URL=http://vllm-whisper:8000/v1/audio/transcriptions
+      - ZIP_PATH=/app/аудио.zip
+    command: >
+      bash -c "pip install aiohttp --quiet &&
+               python test_whisper_async.py"
 
 volumes:
   huggingface_cache:

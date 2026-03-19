@@ -13,9 +13,9 @@ from pathlib import Path
 import aiohttp
 
 
-VLLM_URL = "http://localhost:8000/v1/audio/transcriptions"
+VLLM_URL = os.getenv("VLLM_URL", "http://localhost:8000/v1/audio/transcriptions")
 MODEL = "openai/whisper-large-v3"
-ZIP_PATH = "аудио.zip"
+ZIP_PATH = os.getenv("ZIP_PATH", "аудио.zip")
 MAX_FILES = 10
 LANGUAGE = "ru"  # change to None for auto-detect
 
