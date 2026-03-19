@@ -21,9 +21,11 @@ services:
       --gpu-memory-utilization 0.85
       --limit-mm-per-prompt audio=1
       --uvicorn-log-level warning
+      --enforce-eager
     environment:
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
       - HF_HUB_ENABLE_HF_TRANSFER=0
+      - VLLM_ATTENTION_BACKEND=XFORMERS
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
