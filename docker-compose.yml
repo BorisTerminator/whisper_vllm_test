@@ -16,17 +16,16 @@ services:
     command: >
       --model openai/whisper-large-v3
       --task transcription
-      --max-model-len 3072
-      --max-num-seqs 4
+      --max-model-len 448
+      --max-num-seqs 10
       --dtype float16
       --gpu-memory-utilization 0.9
       --limit-mm-per-prompt audio=1
-      --uvicorn-log-level warning
-      --kv-cache-dtype float16
+      --enforce-eager
     environment:
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
-      - HF_HUB_ENABLE_HF_TRANSFER=1
-      - VLLM_ATTENTION_BACKEND=FLASH_ATTN
+      - HF_HUB_ENABLE_HF_TRANSFER=0
+      - VLLM_ATTENTION_BACKEND=XFORMERS
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
