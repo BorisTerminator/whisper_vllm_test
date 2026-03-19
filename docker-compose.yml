@@ -1,0 +1,35 @@
+services:
+  vllm-whisper:
+    image: vllm/vllm-openai:v0.7.3
+    container_name: vllm-whisper
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+    command: >
+      --model openai/whisper-large-v3
+      --max-model-len 448
+      --max-num-seqs 10
+      --dtype float16
+      --gpu-memory-utilization 0.85
+      --limit-mm-per-prompt audio=1
+      --uvicorn-log-level warning
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+      - HF_HUB_ENABLE_HF_TRANSFER=0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+volumes:
+  huggingface_cache:
