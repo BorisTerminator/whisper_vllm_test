@@ -15,17 +15,18 @@ services:
       - huggingface_cache:/root/.cache/huggingface
     command: >
       --model openai/whisper-large-v3
-      --max-model-len 448
-      --max-num-seqs 10
+      --task transcription
+      --max-model-len 3072
+      --max-num-seqs 4
       --dtype float16
-      --gpu-memory-utilization 0.85
+      --gpu-memory-utilization 0.9
       --limit-mm-per-prompt audio=1
       --uvicorn-log-level warning
-      --enforce-eager
+      --kv-cache-dtype float16
     environment:
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
-      - HF_HUB_ENABLE_HF_TRANSFER=0
-      - VLLM_ATTENTION_BACKEND=XFORMERS
+      - HF_HUB_ENABLE_HF_TRANSFER=1
+      - VLLM_ATTENTION_BACKEND=FLASH_ATTN
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -48,7 +49,7 @@ services:
       - ZIP_PATH=/app/аудио.zip
     command: >
       bash -c "pip install aiohttp --quiet &&
-               python test_whisper_async.py"
+      python test_whisper_async.py"
 
 volumes:
   huggingface_cache:
